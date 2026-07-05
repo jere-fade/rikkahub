@@ -34,7 +34,7 @@ else
   curr="$version_range"
 fi
 
-REPO="https://github.com/${GITHUB_REPOSITORY:-Ladbaby/rikkahub}"
+REPO="https://github.com/${GITHUB_REPOSITORY:-jere-fade/rikkahub}"
 
 # For first release (no prev), use the tag directly instead of A...B range.
 if [ -z "$prev" ]; then
