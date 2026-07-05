@@ -22,6 +22,15 @@ object NodeFavoriteAdapter : FavoriteAdapter<NodeFavoriteTarget> {
         existing: FavoriteEntity?,
         now: Long
     ): FavoriteEntity {
+        return buildFavoriteEntity(target, existing, null, now)
+    }
+
+    fun buildFavoriteEntity(
+        target: NodeFavoriteTarget,
+        existing: FavoriteEntity?,
+        ttsBookmark: me.rerere.tts.controller.TtsBookmarkInfo?,
+        now: Long,
+    ): FavoriteEntity {
         val ref = NodeFavoriteRef(
             conversationId = target.conversationId,
             nodeId = target.nodeId,
@@ -32,12 +41,18 @@ object NodeFavoriteAdapter : FavoriteAdapter<NodeFavoriteTarget> {
             previewText = target.node.buildFavoritePreview(),
         )
 
+        val snapshotJson = if (ttsBookmark != null) {
+            JsonInstant.encodeToString(ttsBookmark)
+        } else {
+            ""
+        }
+
         return FavoriteEntity(
             id = existing?.id ?: buildRefKey(target),
             type = type.value,
             refKey = buildRefKey(target),
             refJson = JsonInstant.encodeToString(ref),
-            snapshotJson = "",
+            snapshotJson = snapshotJson,
             metaJson = JsonInstant.encodeToString(meta),
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
@@ -56,6 +71,15 @@ object NodeFavoriteAdapter : FavoriteAdapter<NodeFavoriteTarget> {
         val rawMeta = entity.metaJson ?: return null
         return runCatching {
             JsonInstant.decodeFromString<FavoriteMeta>(rawMeta)
+        }.getOrNull()
+    }
+
+    fun decodeTtsBookmark(entity: FavoriteEntity): me.rerere.tts.controller.TtsBookmarkInfo? {
+        if (entity.type != type.value) return null
+        val raw = entity.snapshotJson ?: return null
+        if (raw.isBlank()) return null
+        return runCatching {
+            JsonInstant.decodeFromString<me.rerere.tts.controller.TtsBookmarkInfo>(raw)
         }.getOrNull()
     }
 }

@@ -2,14 +2,19 @@ package me.rerere.rikkahub.ui.pages.favorite
 
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.VolumeHigh
+import me.rerere.rikkahub.ui.context.LocalTTSState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +61,7 @@ fun FavoritePage(vm: FavoriteVM = koinViewModel()) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val ttsState = LocalTTSState.current
     val favorites = vm.nodeFavorites.collectAsStateWithLifecycle().value
     val favoriteRemovedText = stringResource(R.string.favorite_page_removed)
     val undoText = stringResource(R.string.history_page_undo)
@@ -103,6 +109,9 @@ fun FavoritePage(vm: FavoriteVM = koinViewModel()) {
                 SwipeableFavoriteCard(
                     item = item,
                     onClick = { navigateToChatPage(navController, item.conversationId, nodeId = item.nodeId) },
+                    onReplayTts = if (item.ttsBookmark != null) {
+                        { ttsState.replayBookmark(item.ttsBookmark!!) }
+                    } else null,
                     onDelete = {
                         scope.launch {
                             val entity = vm.getEntityByRefKey(item.refKey) ?: return@launch
@@ -131,6 +140,7 @@ fun FavoritePage(vm: FavoriteVM = koinViewModel()) {
 private fun SwipeableFavoriteCard(
     item: NodeFavoriteListItem,
     onClick: () -> Unit,
+    onReplayTts: (() -> Unit)?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -174,6 +184,7 @@ private fun SwipeableFavoriteCard(
         FavoriteCard(
             item = item,
             onClick = onClick,
+            onReplayTts = onReplayTts,
         )
     }
 }
@@ -182,6 +193,7 @@ private fun SwipeableFavoriteCard(
 private fun FavoriteCard(
     item: NodeFavoriteListItem,
     onClick: () -> Unit,
+    onReplayTts: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -194,12 +206,28 @@ private fun FavoriteCard(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = item.conversationTitle.ifBlank { stringResource(R.string.favorite_page_untitled_conversation) },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = item.conversationTitle.ifBlank { stringResource(R.string.favorite_page_untitled_conversation) },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (onReplayTts != null) {
+                        Icon(
+                            imageVector = HugeIcons.VolumeHigh,
+                            contentDescription = stringResource(R.string.favorite_page_tts_replay),
+                            modifier = Modifier
+                                .clickable { onReplayTts() }
+                                .padding(8.dp)
+                                .size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 val dateText = Instant.ofEpochMilli(item.createdAt).toLocalDateTime()
                 Text(
                     text = item.preview,

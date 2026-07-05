@@ -6,6 +6,7 @@ import me.rerere.rikkahub.data.db.entity.FavoriteEntity
 import me.rerere.rikkahub.data.favorite.NodeFavoriteAdapter
 import me.rerere.rikkahub.data.model.FavoriteType
 import me.rerere.rikkahub.data.model.NodeFavoriteTarget
+import me.rerere.tts.controller.TtsBookmarkInfo
 import kotlin.uuid.Uuid
 
 class FavoriteRepository(
@@ -25,12 +26,17 @@ class FavoriteRepository(
 
     suspend fun upsert(entity: FavoriteEntity) = dao.upsert(entity)
 
-    suspend fun addNodeFavorite(target: NodeFavoriteTarget): FavoriteEntity {
+    suspend fun addNodeFavorite(
+        target: NodeFavoriteTarget,
+        ttsBookmark: TtsBookmarkInfo? = null,
+    ): FavoriteEntity {
         val refKey = NodeFavoriteAdapter.buildRefKey(target)
         val existing = dao.getByRefKey(refKey)
         val favorite = NodeFavoriteAdapter.buildFavoriteEntity(
             target = target,
             existing = existing,
+            ttsBookmark = ttsBookmark,
+            now = System.currentTimeMillis(),
         )
         dao.upsert(favorite)
         return favorite

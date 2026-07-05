@@ -23,6 +23,7 @@ import me.rerere.tts.model.TTSResponse
 import me.rerere.tts.provider.TTSManager
 import me.rerere.tts.provider.TTSProviderSetting
 import me.rerere.tts.controller.TtsController
+import me.rerere.tts.controller.TtsBookmarkInfo
 import org.koin.compose.koinInject
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -118,6 +119,12 @@ interface CustomTtsState {
     /** Set playback [speed]. */
     fun setSpeed(speed: Float)
 
+    /** Get the current TTS session as a bookmark (for favoriting). */
+    fun getCurrentTtsBookmark(): TtsBookmarkInfo?
+
+    /** Replay a bookmarked TTS session. */
+    fun replayBookmark(bookmark: TtsBookmarkInfo)
+
     /** Cleanup resources. */
     fun cleanup()
 }
@@ -190,5 +197,20 @@ private class CustomTtsStateImpl(
     override fun cleanup() {
         controller.dispose()
         currentJob = null
+    }
+
+    override fun getCurrentTtsBookmark(): TtsBookmarkInfo? {
+        val manifest = controller.getCurrentSessionManifest() ?: return null
+        return TtsBookmarkInfo(
+            sessionId = manifest.sessionId,
+            providerFingerprint = manifest.providerFingerprint,
+            originalText = manifest.originalText,
+            chunkCount = manifest.chunkCount,
+            chunkTexts = manifest.chunkTexts,
+        )
+    }
+
+    override fun replayBookmark(bookmark: TtsBookmarkInfo) {
+        controller.replayBookmark(bookmark)
     }
 }

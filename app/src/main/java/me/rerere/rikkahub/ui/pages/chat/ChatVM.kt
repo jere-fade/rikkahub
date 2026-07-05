@@ -316,19 +316,23 @@ class ChatVM(
         }
     }
 
-    fun toggleMessageFavorite(node: MessageNode) {
+    fun toggleMessageFavorite(
+        node: MessageNode,
+        ttsBookmark: me.rerere.tts.controller.TtsBookmarkInfo? = null,
+    ) {
         viewModelScope.launch {
             val currentlyFavorited = favoriteRepository.isNodeFavorited(_conversationId, node.id)
             if (currentlyFavorited) {
                 favoriteRepository.removeNodeFavorite(_conversationId, node.id)
             } else {
                 favoriteRepository.addNodeFavorite(
-                    NodeFavoriteTarget(
+                    target = NodeFavoriteTarget(
                         conversationId = _conversationId,
                         conversationTitle = conversation.value.title,
                         nodeId = node.id,
-                        node = node
-                    )
+                        node = node,
+                    ),
+                    ttsBookmark = ttsBookmark,
                 )
             }
 

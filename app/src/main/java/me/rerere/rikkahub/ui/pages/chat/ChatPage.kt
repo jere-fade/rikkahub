@@ -81,6 +81,7 @@ import me.rerere.rikkahub.ui.components.ui.permission.PermissionCamera
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
 import me.rerere.rikkahub.ui.components.ui.permission.rememberPermissionState
 import me.rerere.rikkahub.ui.context.LocalNavController
+import me.rerere.rikkahub.ui.context.LocalTTSState
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.ui.hooks.ChatInputState
@@ -277,6 +278,7 @@ private fun ChatPageContent(
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    val ttsState = LocalTTSState.current
     val workspaceRepository: WorkspaceRepository = koinInject()
     var previewMode by rememberSaveable { mutableStateOf(false) }
     val hazeState = rememberHazeState()
@@ -465,7 +467,8 @@ private fun ChatPageContent(
                     vm.handleToolAnswer(toolCallId, answer)
                 },
                 onToggleFavorite = { node ->
-                    vm.toggleMessageFavorite(node)
+                    val bookmark = ttsState.getCurrentTtsBookmark()
+                    vm.toggleMessageFavorite(node, ttsBookmark = bookmark)
                 },
                 onConversationSystemPromptChange = { newPrompt ->
                     vm.updateConversation(conversation.copy(customSystemPrompt = newPrompt))

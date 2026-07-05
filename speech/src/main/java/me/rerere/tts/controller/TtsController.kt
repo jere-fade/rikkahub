@@ -331,6 +331,43 @@ class TtsController(
         _lastHttpError.update { null }
     }
 
+    fun getCurrentSessionManifest(): TtsSessionManifest? = lastSessionManifest
+
+    /**
+     * Replay a bookmarked TTS session.
+     * If the provider fingerprint matches, reuses the original sessionId so disk chunks are hit.
+     * Otherwise falls back to a fresh synthesis.
+     */
+    fun replayBookmark(bookmark: TtsBookmarkInfo) {
+        val provider = currentProvider ?: run {
+            _error.update { "No TTS provider selected" }
+            return
+        }
+        val fingerprint = diskCache.fingerprint(provider)
+        if (fingerprint != bookmark.providerFingerprint) {
+            speak(bookmark.originalText)
+            return
+        }
+        internalReset()
+        currentSessionId = runCatching { UUID.fromString(bookmark.sessionId) }.getOrNull()
+        val replayChunks = chunker.split(bookmark.originalText)
+        if (replayChunks.isEmpty()) return
+        val indexed = replayChunks.mapIndexed { i, c -> c.copy(index = i) }
+        allChunks.addAll(indexed)
+        queue.addAll(indexed)
+        _totalChunks.update { queue.size }
+        _error.update { null }
+        _playbackState.update {
+            it.copy(
+                currentChunkIndex = 0,
+                totalChunks = _totalChunks.value,
+                status = PlaybackStatus.Buffering,
+            )
+        }
+        if (workerJob?.isActive != true) startWorker()
+        prefetchFrom(0)
+    }
+
     // region 内部：播放调度
     private fun startWorker() {
         val provider = currentProvider

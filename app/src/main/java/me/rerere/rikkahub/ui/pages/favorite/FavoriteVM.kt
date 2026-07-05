@@ -10,6 +10,7 @@ import me.rerere.rikkahub.data.db.entity.FavoriteEntity
 import me.rerere.rikkahub.data.favorite.NodeFavoriteAdapter
 import me.rerere.rikkahub.data.model.FavoriteType
 import me.rerere.rikkahub.data.repository.FavoriteRepository
+import me.rerere.tts.controller.TtsBookmarkInfo
 import kotlin.uuid.Uuid
 
 data class NodeFavoriteListItem(
@@ -20,6 +21,7 @@ data class NodeFavoriteListItem(
     val conversationTitle: String,
     val preview: String,
     val createdAt: Long,
+    val ttsBookmark: TtsBookmarkInfo? = null,
 )
 
 class FavoriteVM(
@@ -31,6 +33,7 @@ class FavoriteVM(
             favorites.mapNotNull { entity ->
                 val ref = NodeFavoriteAdapter.decodeRef(entity) ?: return@mapNotNull null
                 val meta = NodeFavoriteAdapter.decodeMeta(entity)
+                val ttsBookmark = NodeFavoriteAdapter.decodeTtsBookmark(entity)
 
                 NodeFavoriteListItem(
                     id = entity.id,
@@ -40,6 +43,7 @@ class FavoriteVM(
                     conversationTitle = meta?.title.orEmpty(),
                     preview = meta?.previewText ?: "",
                     createdAt = entity.createdAt,
+                    ttsBookmark = ttsBookmark,
                 )
             }
         }

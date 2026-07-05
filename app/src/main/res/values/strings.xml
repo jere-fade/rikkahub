@@ -375,6 +375,7 @@
   <string name="favorite_page_removed">Favorite removed</string>
   <string name="favorite_page_title">Favorites</string>
   <string name="favorite_page_untitled_conversation">Untitled Conversation</string>
+  <string name="favorite_page_tts_replay">Replay TTS</string>
   <string name="history_page_cancel">Cancel</string>
   <string name="history_page_conversation_deleted">Conversation deleted</string>
   <string name="history_page_delete">Delete</string>

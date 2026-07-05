@@ -27,6 +27,16 @@ data class TtsSessionManifest(
     val chunkTexts: List<String>,
 )
 
+/** Portable snapshot of a TTS session for bookmarking. */
+@Serializable
+data class TtsBookmarkInfo(
+    val sessionId: String,
+    val providerFingerprint: String,
+    val originalText: String,
+    val chunkCount: Int,
+    val chunkTexts: List<String>,
+)
+
 class TtsDiskCache(context: Context) {
 
     private val rootDir: File = context.getCacheDirectory("tts")
