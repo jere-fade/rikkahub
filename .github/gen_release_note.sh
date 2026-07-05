@@ -43,6 +43,17 @@ else
   LOG_RANGE="${prev}...${curr}"
 fi
 
+# Resolve the actual tag name for links (HEAD resolves to the version we're releasing).
+if [ "$curr" = "HEAD" ]; then
+  CURR_TAG="${steps_version:-}"
+  # Fallback: read versionName from build.gradle.kts
+  if [ -z "$CURR_TAG" ] && [ -f app/build.gradle.kts ]; then
+    CURR_TAG=$(grep -oP '(?<=versionName = ")[^"]+' app/build.gradle.kts)
+  fi
+else
+  CURR_TAG="$curr"
+fi
+
 {
   echo "# What's New"
   echo ""
@@ -67,7 +78,7 @@ fi
 
   # ── Footer ─────────────────────────────────────────────────────────
   if [ -n "$prev" ]; then
-    echo "**Full Changelog**: ${REPO}/compare/${prev}...${curr}"
+    echo "**Full Changelog**: ${REPO}/compare/${prev}...${CURR_TAG}"
   else
     echo "**Full Changelog**: ${REPO}/releases/tag/${curr}"
   fi

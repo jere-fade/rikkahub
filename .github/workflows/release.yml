@@ -93,7 +93,7 @@ jobs:
             bash .github/gen_release_note.sh -v "...HEAD"
           else
             bash .github/gen_release_note.sh \
-              -v "${{ steps.prev.outputs.prev }}...${{ steps.version.outputs.version }}"
+              -v "${{ steps.prev.outputs.prev }}...HEAD"
           fi
           cat release.md
 
