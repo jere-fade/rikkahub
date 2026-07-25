@@ -54,6 +54,7 @@ class TtsController(
     // 重放缓存：上一次朗读的会话元数据
     private var currentSessionId: UUID? = null
     private var lastSessionManifest: TtsSessionManifest? = null
+    private var lastSpokenText: String? = null
 
     // 队列与缓存（基于稳定 ID）
     private val queue: java.util.concurrent.ConcurrentLinkedQueue<TtsChunk> = java.util.concurrent.ConcurrentLinkedQueue()
@@ -80,6 +81,9 @@ class TtsController(
 
     private val _currentChunk = MutableStateFlow(0)
     val currentChunk: StateFlow<Int> = _currentChunk.asStateFlow()
+
+    private val _currentChunkIndex = MutableStateFlow(0)
+    val currentChunkIndex: StateFlow<Int> = _currentChunkIndex.asStateFlow()
 
     private val _totalChunks = MutableStateFlow(0)
     val totalChunks: StateFlow<Int> = _totalChunks.asStateFlow()
@@ -132,6 +136,7 @@ class TtsController(
      */
     fun speak(text: String, flush: Boolean = true) {
         if (text.isBlank()) return
+        lastSpokenText = text
         val provider = currentProvider
         if (provider == null) {
             _error.update { "No TTS provider selected" }
@@ -216,6 +221,7 @@ class TtsController(
         lastPrefetchedIndex = -1
         _isSpeaking.update { false }
         _currentChunk.update { 0 }
+        _currentChunkIndex.update { 0 }
         _totalChunks.update { 0 }
         _error.update { null }
         _playbackState.update { PlaybackState(status = PlaybackStatus.Idle) }
@@ -266,6 +272,7 @@ class TtsController(
         lastPrefetchedIndex = -1
         _isSpeaking.update { false }
         _currentChunk.update { 0 }
+        _currentChunkIndex.update { 0 }
         _totalChunks.update { 0 }
         _playbackState.update { PlaybackState(status = PlaybackStatus.Idle) }
     }
@@ -327,6 +334,21 @@ class TtsController(
         prefetchFrom(0)
     }
 
+    fun regenerateChunk(targetChunkIndex: Int) {
+        val text = lastSpokenText ?: return
+        val sessionId = currentSessionId ?: return
+
+        // Delete the chunk from disk so it gets re-synthesized
+        scope.launch {
+            diskCache.deleteChunk(sessionId, targetChunkIndex)
+        }
+
+        // Stop current playback and restart — other chunks load from disk,
+        // only the deleted chunk triggers re-synthesis.
+        stop()
+        speak(text, flush = true)
+    }
+
     fun clearLastHttpError() {
         _lastHttpError.update { null }
     }
@@ -353,6 +375,7 @@ class TtsController(
 
                     // 更新状态（1-based）
                     _currentChunk.update { processedCount + 1 }
+                    _currentChunkIndex.update { processedCount }
                     _totalChunks.update { queue.size + 1 }
                     _playbackState.update {
                         it.copy(

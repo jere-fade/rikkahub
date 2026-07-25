@@ -33,6 +33,7 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Forward02
 import me.rerere.hugeicons.stroke.Pause
 import me.rerere.hugeicons.stroke.Play
+import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.Replay
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.LocalTTSState
@@ -106,6 +107,8 @@ fun TTSController() {
                     ) {
                         SpeedButton(playbackState, ttsState)
 
+                        RegenerateButton(ttsState = ttsState)
+
                         FastForwardButton(ttsState = ttsState)
                     }
                 }
@@ -122,6 +125,21 @@ fun TTSController() {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RegenerateButton(ttsState: CustomTtsState) {
+    val currentChunkIndex by ttsState.currentChunkIndex.collectAsState()
+    IconButton(
+        onClick = {
+            ttsState.regenerateChunk(currentChunkIndex)
+        }
+    ) {
+        Icon(
+            imageVector = HugeIcons.Refresh03,
+            contentDescription = null,
+        )
     }
 }
 

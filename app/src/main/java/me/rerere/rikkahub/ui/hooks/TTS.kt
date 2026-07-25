@@ -79,8 +79,11 @@ interface CustomTtsState {
     /** Flow holding the most recent HTTP error (only populated by providers that throw TtsHttpException). */
     val lastHttpError: StateFlow<TtsHttpException?>
 
-    /** Flow indicating current chunk being processed (index) */
+    /** Flow indicating current chunk being processed (1-based) */
     val currentChunk: StateFlow<Int>
+
+    /** Flow indicating the 0-based index of the current chunk */
+    val currentChunkIndex: StateFlow<Int>
 
     /** Flow indicating total chunks in queue */
     val totalChunks: StateFlow<Int>
@@ -112,6 +115,9 @@ interface CustomTtsState {
     /** Replay the last spoken session if available. */
     fun replayLast()
 
+    /** Regenerate (re-synthesize) a single chunk. Other chunks load from disk cache. */
+    fun regenerateChunk(chunkIndex: Int)
+
     /** Clear the last HTTP error so it isn't re-toasted. */
     fun clearLastHttpError()
 
@@ -141,6 +147,7 @@ private class CustomTtsStateImpl(
     override val error: StateFlow<String?> get() = controller.error
     override val lastHttpError: StateFlow<TtsHttpException?> get() = controller.lastHttpError
     override val currentChunk: StateFlow<Int> get() = controller.currentChunk
+    override val currentChunkIndex: StateFlow<Int> get() = controller.currentChunkIndex
     override val totalChunks: StateFlow<Int> get() = controller.totalChunks
     override val playbackState: StateFlow<PlaybackState> get() = controller.playbackState
 
@@ -177,6 +184,10 @@ private class CustomTtsStateImpl(
 
     override fun replayLast() {
         controller.replayLast()
+    }
+
+    override fun regenerateChunk(chunkIndex: Int) {
+        controller.regenerateChunk(chunkIndex)
     }
 
     override fun clearLastHttpError() {

@@ -163,6 +163,10 @@ class TtsDiskCache(context: Context) {
         sessionDir(sessionId).deleteRecursively()
     }
 
+    suspend fun deleteChunk(sessionId: UUID, index: Int) = withContext(Dispatchers.IO) {
+        File(sessionDir(sessionId), "$index.mp3").delete()
+    }
+
     fun fingerprint(provider: TTSProviderSetting): String {
         val raw = when (provider) {
             is TTSProviderSetting.OpenAI -> "${provider.model}|${provider.voice}|${provider.baseUrl}"
