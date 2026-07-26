@@ -180,6 +180,19 @@ class S3Sync(
                 } else {
                     Log.w(TAG, "prepareBackupFile: Fonts folder does not exist or is not a directory")
                 }
+
+                val ttsFolder = File(context.filesDir, FileFolders.TTS)
+                if (ttsFolder.exists() && ttsFolder.isDirectory) {
+                    Log.i(TAG, "prepareBackupFile: Backing up TTS files from ${ttsFolder.absolutePath}")
+                    addDirectoryToZip(
+                        zipOut = zipOut,
+                        rootDir = ttsFolder,
+                        currentDir = ttsFolder,
+                        entryPrefix = "${FileFolders.TTS}/"
+                    )
+                } else {
+                    Log.w(TAG, "prepareBackupFile: TTS folder does not exist or is not a directory")
+                }
             }
         }
 
@@ -290,6 +303,22 @@ class S3Sync(
                                 if (fileName.isNotEmpty() && !fileName.contains('/')) {
                                     val fontsFolder = File(context.filesDir, FileFolders.FONTS).apply { mkdirs() }
                                     val targetFile = File(fontsFolder, fileName)
+                                    FileOutputStream(targetFile).use { outputStream ->
+                                        zipIn.copyTo(outputStream)
+                                    }
+                                    Log.i(
+                                        TAG,
+                                        "restoreFromBackupFile: Restored ${zipEntry.name} (${targetFile.length()} bytes)"
+                                    )
+                                }
+                            } else if (config.items.contains(S3Config.BackupItem.FILES) &&
+                                zipEntry.name.startsWith("${FileFolders.TTS}/")
+                            ) {
+                                val relativePath = zipEntry.name.substringAfter("${FileFolders.TTS}/")
+                                if (relativePath.isNotEmpty()) {
+                                    val ttsFolder = File(context.filesDir, FileFolders.TTS).apply { mkdirs() }
+                                    val targetFile = File(ttsFolder, relativePath)
+                                    targetFile.parentFile?.mkdirs()
                                     FileOutputStream(targetFile).use { outputStream ->
                                         zipIn.copyTo(outputStream)
                                     }

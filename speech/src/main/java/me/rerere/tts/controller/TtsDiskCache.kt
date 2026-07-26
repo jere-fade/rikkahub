@@ -6,8 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import me.rerere.common.android.getCacheDirectory
-import me.rerere.tts.model.AudioFormat
 import me.rerere.tts.provider.TTSProviderSetting
 import java.io.File
 import java.security.MessageDigest
@@ -15,7 +13,6 @@ import java.util.UUID
 
 private const val TAG = "TtsDiskCache"
 private const val MANIFEST_FILENAME = "manifest.json"
-const val MAX_TTS_SESSIONS = 10
 
 @Serializable
 data class TtsSessionManifest(
@@ -29,7 +26,32 @@ data class TtsSessionManifest(
 
 class TtsDiskCache(context: Context) {
 
-    private val rootDir: File = context.getCacheDirectory("tts")
+    private val rootDir: File = File(context.filesDir, "tts").apply { mkdirs() }
+
+    init {
+        migrateFromOldCache(context)
+    }
+
+    private fun migrateFromOldCache(context: Context) {
+        val oldRoot = File(context.cacheDir, "disk_cache/tts")
+        if (!oldRoot.exists()) return
+        val oldDirs = oldRoot.listFiles { it.isDirectory }
+        if (oldDirs.isNullOrEmpty()) {
+            oldRoot.delete()
+            return
+        }
+        // Migrate sessions from old cache to new persistent location
+        for (oldSession in oldDirs) {
+            val newSession = File(rootDir, oldSession.name)
+            if (!newSession.exists()) {
+                oldSession.renameTo(newSession)
+            }
+        }
+        // Clean up old directory
+        oldRoot.delete()
+        oldRoot.parentFile?.delete() // also clean up disk_cache/
+        Log.i(TAG, "migrateFromOldCache: Migrated TTS sessions from cacheDir to filesDir")
+    }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 
     fun sessionDir(sessionId: UUID): File = File(rootDir, sessionId.toString())
@@ -116,8 +138,7 @@ class TtsDiskCache(context: Context) {
 
     /**
      * Synchronous variant used inside speak() on the calling thread. Cheap enough to
-     * call inline: a single directory scan + at most one small JSON read per session,
-     * capped at MAX_TTS_SESSIONS directories.
+     * call inline: a single directory scan + at most one small JSON read per session.
      */
     fun findSessionByTextBlocking(
         text: String,
@@ -146,18 +167,6 @@ class TtsDiskCache(context: Context) {
         if (!file.exists()) return@runCatching null
         json.decodeFromString(TtsSessionManifest.serializer(), file.readText())
     }.getOrNull()
-
-    suspend fun evictOlderThan(maxSessions: Int) = withContext(Dispatchers.IO) {
-        runCatching {
-            val dirs = rootDir.listFiles { f -> f.isDirectory } ?: return@runCatching
-            if (dirs.size <= maxSessions) return@runCatching
-            val sorted = dirs.sortedBy { it.lastModified() }
-            val toDelete = sorted.size - maxSessions
-            for (i in 0 until toDelete) {
-                sorted[i].deleteRecursively()
-            }
-        }.onFailure { Log.w(TAG, "evictOlderThan failed", it) }
-    }
 
     suspend fun deleteSession(sessionId: UUID) = withContext(Dispatchers.IO) {
         sessionDir(sessionId).deleteRecursively()

@@ -163,7 +163,6 @@ class TtsController(
                 lastSessionManifest = adopted
             } else {
                 scope.launch {
-                    diskCache.evictOlderThan(MAX_TTS_SESSIONS)
                     val manifest = TtsSessionManifest(
                         sessionId = newSessionId.toString(),
                         createdAt = System.currentTimeMillis(),
